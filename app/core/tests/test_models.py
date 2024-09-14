@@ -10,14 +10,19 @@ class ModelTests(TestCase):
 
     def test_create_user_with_email_successful(self):
         """Test creating a user with an email is successful."""
-        email = 'test@example.com'
-        password = 'password123'
-        user = get_user_model().objects.create_user(
-            email=email,
-            password=password,
-        )
-        self.assertEqual(user.email, email)
-        self.assertTrue(user.check_password(password))
+        user_details = {
+            'email': 'test@example.com',
+            'password': 'password123',
+            'username': 'yura295',
+            'phone_number': '+380999999999',
+        }
+        user = get_user_model().objects.create_user(**user_details)
+
+        for field, value in user_details.items():
+            if field == 'password':
+                self.assertTrue(user.check_password(value))
+            else:
+                self.assertEqual(getattr(user, field), value)
 
     def test_new_user_email_normalized(self):
         """Test email is normalized for new users."""
