@@ -49,7 +49,8 @@ class UserAdmin(BaseUserAdmin):
 class TaskAdmin(admin.ModelAdmin):
     """Define the admin pages for tasks."""
     ordering = ['id']
-    list_display = ['user', 'description', 'due_date', 'priority', 'is_complete']
+    list_display = ['user', 'description', 'due_date',
+                    'priority', 'is_complete']
     list_filter = ('priority', 'is_complete')
     readonly_fields = ['created_at', 'updated_at']
 
@@ -64,4 +65,3 @@ class TagAdmin(admin.ModelAdmin):
 admin.site.register(models.User, UserAdmin)
 admin.site.register(models.Task, TaskAdmin)
 admin.site.register(models.Tag, TagAdmin)
-

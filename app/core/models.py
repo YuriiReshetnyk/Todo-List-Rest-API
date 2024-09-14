@@ -75,7 +75,8 @@ class Task(models.Model):
 
     def clean(self):
         if self.due_date < timezone.now():
-            raise ValidationError(_("You can't set a due date earlier than now."))
+            raise ValidationError(_("You can't set a due date "
+                                    "earlier than now."))
 
     def save(self, *args, **kwargs):
         """Override save method to call clean before saving."""
