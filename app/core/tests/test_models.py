@@ -1,8 +1,14 @@
 """
 Tests for models.
 """
+from datetime import datetime
+
+from django.utils import timezone
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+
+from core import models
 
 
 class ModelTests(TestCase):
@@ -50,3 +56,43 @@ class ModelTests(TestCase):
 
         self.assertTrue(user.is_superuser)
         self.assertTrue(user.is_staff)
+
+    def test_create_task(self):
+        """Test creating a task."""
+        user = get_user_model().objects.create_user(
+            email='test@example.com',
+            password='password123',
+        )
+        task = models.Task.objects.create(
+            user=user,
+            description='Test task',
+            due_date=timezone.make_aware(datetime(2025, 10, 9)),
+            priority=1,
+        )
+        self.assertEqual(str(task), task.description)
+
+    def test_create_task_with_due_date_less_than_current_time_raise_error(self):
+        """Test creating a task with due date with data
+        earlier than current time raise ValueError."""
+        user = get_user_model().objects.create_user(
+            email='test@example.com',
+            password='password123',
+        )
+        with self.assertRaises(ValidationError):
+            models.Task.objects.create(
+                user=user,
+                description='Test task',
+                due_date=timezone.make_aware(datetime(1889, 4, 20)),
+            )
+
+    def test_create_tag(self):
+        """Test creating a tag."""
+        user = get_user_model().objects.create_user(
+            email='test@example.com',
+            password='password123',
+        )
+        tag = models.Tag.objects.create(
+            user=user,
+            name='Tag1',
+        )
+        self.assertEqual(str(tag), tag.name)

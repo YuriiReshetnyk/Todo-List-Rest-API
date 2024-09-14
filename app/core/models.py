@@ -1,6 +1,10 @@
 """
 Database models.
 """
+from django.utils import timezone
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -48,3 +52,47 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
 
 
+class Task(models.Model):
+    """Task object."""
+    class Priority(models.IntegerChoices):
+        LOW = 1, _('Low')
+        MEDIUM = 2, _('Medium')
+        HIGH = 3, _('High')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    description = models.CharField(max_length=500)
+    due_date = models.DateTimeField()
+    is_complete = models.BooleanField(default=False)
+    priority = models.IntegerField(
+        choices=Priority.choices,
+        default=Priority.LOW
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
+
+    def clean(self):
+        if self.due_date < timezone.now():
+            raise ValidationError(_("You can't set a due date earlier than now."))
+
+    def save(self, *args, **kwargs):
+        """Override save method to call clean before saving."""
+        self.clean()  # This will validate the fields
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.description
+
+
+class Tag(models.Model):
+    name = models.CharField(max_length=255)
+    tasks = models.ManyToManyField('Task')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
+
+    def __str__(self):
+        return self.name
