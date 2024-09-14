@@ -39,7 +39,8 @@ class ModelTests(TestCase):
             ['test4@EXAMPLE.COM', 'test4@example.com'],
         ]
         for email, expected in sample_emails:
-            user = get_user_model().objects.create_user(email=email, password='password123')
+            user = get_user_model().objects.\
+                create_user(email=email, password='password123')
             self.assertEqual(user.email, expected)
 
     def test_new_user_without_email_raises_error(self):
@@ -71,9 +72,9 @@ class ModelTests(TestCase):
         )
         self.assertEqual(str(task), task.description)
 
-    def test_create_task_with_due_date_less_than_current_time_raise_error(self):
+    def test_create_task_due_date_too_early_raise_error(self):
         """Test creating a task with due date with data
-        earlier than current time raise ValueError."""
+        earlier than current time raise ValidationError."""
         user = get_user_model().objects.create_user(
             email='test@example.com',
             password='password123',
