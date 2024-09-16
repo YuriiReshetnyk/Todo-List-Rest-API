@@ -121,13 +121,13 @@ class PrivateTagApiTest(TestCase):
             description='Test task1',
             due_date=timezone.make_aware(datetime(2024, 12, 12))
         )
-        task1 = Task.objects.create(
+        task2 = Task.objects.create(
             user=self.user,
             description='Test task2',
             due_date=timezone.make_aware(datetime(2025, 12, 12))
         )
         task1.tags.add(tag_work)
-        task1.tags.add(tag_work)
+        task2.tags.add(tag_work)
 
         res = self.client.get(TAG_URL, {'assigned_only': 1})
 
