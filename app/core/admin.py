@@ -51,8 +51,8 @@ class TaskAdmin(admin.ModelAdmin):
     ordering = ['id']
     list_display = ['user', 'description', 'due_date',
                     'priority', 'is_complete']
-    list_filter = ('priority', 'is_complete')
-    readonly_fields = ['created_at', 'updated_at']
+    list_filter = ('priority', 'is_complete', 'user')
+    readonly_fields = ['created_at']
 
 
 class TagAdmin(admin.ModelAdmin):

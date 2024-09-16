@@ -52,6 +52,17 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
 
 
+class Tag(models.Model):
+    name = models.CharField(max_length=255)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
+
+    def __str__(self):
+        return self.name
+
+
 class Task(models.Model):
     """Task object."""
     class Priority(models.IntegerChoices):
@@ -60,10 +71,10 @@ class Task(models.Model):
         HIGH = 3, _('High')
 
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     description = models.CharField(max_length=500)
     due_date = models.DateTimeField()
     is_complete = models.BooleanField(default=False)
+    tags = models.ManyToManyField('Tag')
     priority = models.IntegerField(
         choices=Priority.choices,
         default=Priority.LOW
@@ -85,15 +96,3 @@ class Task(models.Model):
 
     def __str__(self):
         return self.description
-
-
-class Tag(models.Model):
-    name = models.CharField(max_length=255)
-    tasks = models.ManyToManyField('Task')
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-    )
-
-    def __str__(self):
-        return self.name

@@ -29,12 +29,14 @@ class PublicUserApiTests(TestCase):
         """Test creating a user is successful."""
         payload = {
             'email': 'test@example.com',
-            'password': 'password123'
+            'password': 'password123',
+            'username': 'Jonny123'
         }
         res = self.client.post(CREATE_USER_URL, payload)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         user = get_user_model().objects.get(email=payload['email'])
+        self.assertEqual(user.username, payload['username'])
         self.assertTrue(user.check_password(payload['password']))
         self.assertNotIn('password', res.data)
 
@@ -42,7 +44,8 @@ class PublicUserApiTests(TestCase):
         """Test error returned if user with email exists."""
         payload = {
             'email': 'test@example.com',
-            'password': 'password123'
+            'password': 'password123',
+            'username': 'Jonny123'
         }
         create_user(**payload)
         res = self.client.post(CREATE_USER_URL, payload)
@@ -53,7 +56,8 @@ class PublicUserApiTests(TestCase):
         """Test an error is returned if password less than 5 chars"""
         payload = {
             'email': 'test@example.com',
-            'password': 'pass'
+            'password': 'pass',
+            'username': 'Jonny123'
         }
         res = self.client.post(CREATE_USER_URL, payload)
 
@@ -67,7 +71,8 @@ class PublicUserApiTests(TestCase):
         """Test generates token for valid credentials."""
         user_details = {
             'email': 'test@example.com',
-            'password': 'password123'
+            'password': 'password123',
+            'username': 'Jonny123'
         }
         create_user(**user_details)
 
@@ -82,7 +87,8 @@ class PublicUserApiTests(TestCase):
 
     def test_create_token_bad_credentials(self):
         """Test returns error if credentials invalid."""
-        create_user(email='test@example.com', password='password124')
+        create_user(email='test@example.com', password='password124',
+                    username='Jonny123')
 
         payload = {
             'email': 'test@example.com',
@@ -118,6 +124,7 @@ class PrivateUserApiTests(TestCase):
         self.user = create_user(
             email='test@example.com',
             password='password123',
+            username='Jonny123'
         )
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
@@ -127,7 +134,8 @@ class PrivateUserApiTests(TestCase):
         res = self.client.get(ME_URL)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data, {'email': self.user.email})
+        self.assertEqual(res.data, {'email': self.user.email,
+                                    'username': self.user.username})
 
     def test_post_me_not_allowed(self):
         """Test POST is not allowed for the me endpoint."""
