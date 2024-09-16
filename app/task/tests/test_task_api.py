@@ -13,6 +13,7 @@ from rest_framework import status
 
 from core.models import (
     Task,
+    Tag,
 )
 from task.serializers import (
     TaskSerializer,
@@ -52,6 +53,22 @@ class PublicTaskApiTest(TestCase):
 
 class PrivateTaskApiTest(TestCase):
     """Tests authorized Api requests."""
+
+    def _check_create_client_response_with_tags(self, payload, tag=None):
+        res = self.client.post(TASK_URL, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        tasks = Task.objects.filter(user=self.user)
+        self.assertEqual(tasks.count(), 1)
+        task = tasks[0]
+        self.assertEqual(task.tags.count(), 2)
+        if tag is not None:
+            self.assertIn(tag, task.tags.all())
+        for tag in payload['tags']:
+            exists = Tag.objects.filter(
+                name=tag['name']
+            ).exists()
+            self.assertTrue(exists)
 
     def setUp(self) -> None:
         self.client = APIClient()
@@ -148,7 +165,8 @@ class PrivateTaskApiTest(TestCase):
         """Test full update of a task."""
         task = create_task(user=self.user,
                            description='Test123',
-                           due_date=timezone.make_aware(datetime(2024, 12, 12)),
+                           due_date=timezone.
+                           make_aware(datetime(2024, 12, 12)),
                            priority=2)
 
         payload = {
@@ -181,6 +199,7 @@ class PrivateTaskApiTest(TestCase):
         url = detail_url(task.id)
         res = self.client.patch(url, payload)
 
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
         task.refresh_from_db()
         self.assertEqual(task.user, self.user)
 
@@ -207,3 +226,88 @@ class PrivateTaskApiTest(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
         self.assertTrue(Task.objects.filter(id=task.id).exists())
+
+    def test_create_task_with_new_tags(self):
+        """Test creating a task with new tags."""
+        payload = {
+            "description": 'Test task',
+            "due_date": timezone.make_aware(datetime(2089, 4, 20)),
+            'tags': [{'name': 'Personal Life'}, {'name': 'Work'}]
+        }
+        self._check_create_client_response_with_tags(payload)
+
+    def test_create_task_with_existing_tags(self):
+        """Test creating a task with the existing tag."""
+        tag = Tag.objects.create(user=self.user, name='Work')
+
+        payload = {
+            "description": 'Read emails',
+            "due_date": timezone.make_aware(datetime(2089, 4, 20)),
+            'tags': [{'name': 'Personal Life'}, {'name': 'Work'}]
+        }
+        self._check_create_client_response_with_tags(payload=payload, tag=tag)
+
+    def test_update_task_create_tag(self):
+        """Test tag is created when task is updated."""
+        task = create_task(user=self.user)
+
+        payload = {'tags': [{'name': 'Work'}]}
+        url = detail_url(task.id)
+        res = self.client.patch(url, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        new_tag = Tag.objects.get(user=self.user, name='Work')
+        self.assertIn(new_tag, Tag.objects.all())
+
+    def test_update_task_assign_tag(self):
+        """Test existing tag is assigned when task is created."""
+        tag_work = Tag.objects.create(user=self.user, name='Work')
+        tag_family = Tag.objects.create(user=self.user, name='Family')
+        task = create_task(user=self.user)
+        task.tags.add(tag_work)
+
+        payload = {
+            'tags': [{'name': 'Family'}]
+        }
+        url = detail_url(task.id)
+        res = self.client.patch(url, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn(tag_family, task.tags.all())
+        self.assertNotIn(tag_work, task.tags.all())
+
+    def test_clear_task_tags(self):
+        """Test clearing a task tags."""
+        tag = Tag.objects.create(user=self.user, name='Work')
+        task = create_task(user=self.user)
+        task.tags.add(tag)
+
+        payload = {
+            'tags': []
+        }
+        url = detail_url(task.id)
+        res = self.client.patch(url, payload, format='json')
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(task.tags.count(), 0)
+
+    def test_filter_by_tags(self):
+        """Test filtering tasks by tags."""
+        tag1 = Tag.objects.create(user=self.user, name='Work')
+        tag2 = Tag.objects.create(user=self.user, name='Family')
+        task1 = create_task(user=self.user, description='Task1')
+        task2 = create_task(user=self.user, description='Task2')
+        task1.tags.add(tag1)
+        task2.tags.add(tag1)
+        task3 = create_task(user=self.user, description='Task3')
+
+        params = {'tags': f'{tag1.id},{tag2.id}'}
+        res = self.client.get(TASK_URL, params)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        serializer1 = TaskSerializer(task1)
+        serializer2 = TaskSerializer(task2)
+        serializer3 = TaskSerializer(task3)
+        self.assertIn(serializer1.data, res.data)
+        self.assertIn(serializer2.data, res.data)
+        self.assertNotIn(serializer3.data, res.data)
