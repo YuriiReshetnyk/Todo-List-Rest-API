@@ -92,7 +92,7 @@ class TagViewSet(viewsets.GenericViewSet,
         queryset = self.queryset
         if assigned_only:
             queryset = queryset.filter(task__isnull=False)
-            
+
         return queryset.filter(
             user=self.request.user
         ).order_by('-name').distinct()
